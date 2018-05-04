@@ -51,11 +51,11 @@ module.exports = (toolbox) => {
       toolbox.print.info(`API found, skipping`)
     } else {
       await patching.patch(fileName, {
-        insert: "\tconst " + restOperationName + pascalCaseName + " = (data) => api." + restOperationName + "(`" + route + "`, data)\n",
+        insert: "const " + operation + pascalCaseName + " = (data) => api." + operation + "(`" + route + "`, data)\n",
         before: 'return {\n'
       })
       await patching.patch(fileName, {
-        insert: "\t\t" + restOperationName + pascalCaseName + ",\n",
+        insert: "    " + operation + pascalCaseName + ",\n",
         after: 'return {\n'
       })
       toolbox.print.success(`Successfuly Api route added to ${fileName}`)
@@ -198,7 +198,7 @@ export const failure${pascalCase(operation)} = state =>
         toolbox.print.info(`Saga Index: ${pascalCase(name)} type connect exists, skipping`)
       } else {
         await patching.patch(fileName, {
-          insert: `\n\t\ttakeLatest(${ pascalCase(name)}Types.${ snakeCase(name).toUpperCase() }_${ snakeCase(operation).toUpperCase() }_REQUEST, ${ operation }${ pascalCase(name) }, api),`,
+          insert: `\n    takeLatest(${ pascalCase(name)}Types.${ snakeCase(name).toUpperCase() }_${ snakeCase(operation).toUpperCase() }_REQUEST, ${ operation }${ pascalCase(name) }, api),`,
           after: `yield all([`
         })
         toolbox.print.success(`Saga Index: Saga operation connected to redux`)
@@ -219,7 +219,7 @@ export const failure${pascalCase(operation)} = state =>
         toolbox.print.info(`Redux Index: ${pascalCase(name)} exists, skipping`)
       } else {
         await patching.patch(fileName, {
-          insert: `\n\t${camelCase(name)}: require('./${pascalCase(name)}Redux').reducer,`,
+          insert: `\n  ${camelCase(name)}: require('./${pascalCase(name)}Redux').reducer,`,
           after: "export const reducers = combineReducers({"
         })
         toolbox.print.success(`Redux Index: Redux added`)

@@ -33,15 +33,15 @@ export const <%= props.name %>Selectors = {
 /* ------------- Reducers ------------- */
 
 export const request<%= pascalCase(props.operation)%> = (state, { data }) =>
-  state.merge({ <%= operatingName %>: true, data, payload: null })
+  state.merge({ <%= props.operatingName %>: true, data, payload: null })
 
 export const success<%= pascalCase(props.operation)%> = (state, action) => {
   const { payload } = action
-  return state.merge({ <%= operatingName %>: false, error: null, payload })
+  return state.merge({ <%= props.operatingName %>: false, error: null, payload })
 }
 
 export const failure<%= pascalCase(props.operation)%> = state =>
-  state.merge({ <%= operatingName %>: false, error: true, payload: null })
+  state.merge({ <%= props.operatingName %>: false, error: true, payload: null })
 
 /* ------------- Hookup Reducers To Types ------------- */
 

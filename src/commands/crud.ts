@@ -1,8 +1,8 @@
 import { prompt } from 'gluegun'
+import { strings } from 'gluegun/strings'
 
 module.exports = {
-  name: 'generate',
-  alias: ['g'],
+  name: 'crud',
   run: async (toolbox) => {
     const { parameters, crud } = toolbox
 
@@ -22,8 +22,9 @@ module.exports = {
       message: 'What kind of operation you want to add?',
       choices: ['Fetch', 'Create', 'Delete', 'Update']
     }
+    const { kebabCase } = strings
     const resultOperation = await prompt.ask(askOperation)
-    const resultRoute = await prompt.ask({ type: 'input', name: 'route', message: 'API Route (resources/:id)>' })
+    const resultRoute = await prompt.ask({ type: 'input', name: 'route', message: 'API Route ('+kebabCase(name).toLowerCase()+'/:id)>' })
 
     if (resultRoute.route) {
       crud.addApiRoute(name, resultRoute.route, resultOperation.operation.toLowerCase())
