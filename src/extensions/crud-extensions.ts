@@ -14,6 +14,8 @@ module.exports = (toolbox) => {
       restOperation = 'delete'
     } else if (operation == 'update') {
       restOperation = 'put'
+    } else {
+      restOperation = 'get'
     }
     return restOperation
   }
@@ -28,6 +30,8 @@ module.exports = (toolbox) => {
       restOperation = 'deleting'
     } else if (operation == 'update') {
       restOperation = 'updating'
+    } else {
+      restOperation = 'fetching'
     }
     return restOperation
   }
@@ -62,20 +66,20 @@ module.exports = (toolbox) => {
   async function addReduxOperation(name: string, operation: string): Promise<void> {
     const { template: { generate } } = toolbox
     const path = 'App/Redux'
-    const fileName = `App/Redux/${name}Redux.js`
+    const fileName = `${path}/${name}Redux.js`
     const operatingName = getOperatingName(operation)
 
     if (!filesystem.exists(fileName)) {
       await generate({
-        template: `redux-${operation}.ts.ejs`,
+        template: `redux.ts.ejs`,
         target: fileName,
-        props: { name }
+        props: { name, operation, operatingName }
       })
-      toolbox.print.info(`Created ${path}/${name}Redux.js`)
+      toolbox.print.info(`Created ${path}/${fileName}`)
     } else {
       toolbox.print.info(`Patching ${fileName}`)
       const { snakeCase, camelCase, pascalCase } = strings
-      const operationExists = await toolbox.patching.exists(fileName, snakeCase(name).toUpperCase() + "_" + operation.toUpperCase() + "_REQUEST")
+      const operationExists = await toolbox.patching.exists(fileName, snakeCase(name).toUpperCase() + "_" + snakeCase(operation).toUpperCase() + "_REQUEST")
       if (operationExists) {
         toolbox.print.info(`Redux operation found, skipping`)
       } else {
@@ -87,9 +91,9 @@ module.exports = (toolbox) => {
         })
 
         await patching.patch(fileName, {
-          insert: `\t[Types.${snakeCase(name).toUpperCase()}_${operation.toUpperCase()}_REQUEST]: request${pascalCase(operation)},
-  [Types.${snakeCase(name).toUpperCase()}_${operation.toUpperCase()}_SUCCESS]: success${pascalCase(operation)},
-  [Types.${snakeCase(name).toUpperCase()}_${operation.toUpperCase()}_FAILURE]: failure${pascalCase(operation)},\n`,
+          insert: `\t[Types.${snakeCase(name).toUpperCase()}_${snakeCase(operation).toUpperCase()}_REQUEST]: request${pascalCase(operation)},
+  [Types.${snakeCase(name).toUpperCase()}_${snakeCase(operation).toUpperCase()}_SUCCESS]: success${pascalCase(operation)},
+  [Types.${snakeCase(name).toUpperCase()}_${snakeCase(operation).toUpperCase()}_FAILURE]: failure${pascalCase(operation)},\n`,
           after: 'createReducer(INITIAL_STATE, {\n'
         })
 
@@ -111,5 +115,117 @@ export const failure${pascalCase(operation)} = state =>
 
     }
   }
-  toolbox.crud = { addApiRoute, addReduxOperation }
+
+  async function addSagaOperation(name: string, operation: string): Promise<void> {
+    const { template: { generate } } = toolbox
+    const path = 'App/Sagas'
+    const fileName = `${path}/${name}Sagas.js`
+    const restName = getRestOperationName(operation)
+
+    if (!filesystem.exists(fileName)) {
+      await generate({
+        template: `sagas.ts.ejs`,
+        target: fileName,
+        props: { name, operation, restName }
+      })
+      toolbox.print.info(`Created ${path}/${fileName}`)
+    } else {
+      toolbox.print.info(`Patching ${fileName}`)
+      const { pascalCase, camelCase } = strings
+      const operationExists = await toolbox.patching.exists(fileName, "export function * "+operation+pascalCase(name))
+      if (operationExists) {
+        toolbox.print.info(`Saga operation found, skipping`)
+      } else {
+        await patching.append(fileName, `\nexport function * ${operation}${pascalCase(name)} (api, action) {
+  const { data } = action
+  // const currentData = yield select(${pascalCase(name)}Selectors.getData)
+  // make the call to the api
+  const response = yield call(api.${operation}${pascalCase(name)}, data)
+
+  // success?
+  if (response.ok && isNil(response.data.error)) {
+    yield put(${pascalCase(name)}Actions.${camelCase(operation)}Success(response.data))
+  } else {
+    yield put(${pascalCase(name)}Actions.${camelCase(operation)}Failure())
+  }
+}\n`)
+        toolbox.print.success(`Saga operation added`)
+      }
+    }
+  }
+
+  async function addSagaIndex(name: string, operation: string): Promise<void> {
+    const path = 'App/Sagas'
+    const fileName = `${path}/index.js`
+    if (!filesystem.exists(fileName)) {
+      toolbox.print.error(`${path}/${fileName} not found`)
+    } else {
+      const { pascalCase, snakeCase } = strings
+      const typeExists = await toolbox.patching.exists(fileName, "from '../Redux/" + pascalCase(name) +"Redux'")
+      if (typeExists) {
+        toolbox.print.info(`Saga Index: ${pascalCase(name)} type exists, skipping`)
+      } else {
+        await patching.patch(fileName, {
+          insert: `\nimport { ${pascalCase(name)}Types } from '../Redux/${pascalCase(name)}Redux'`,
+          after: '/* ------------- Types ------------- */'
+        })
+        toolbox.print.success(`Saga Index:  Saga type added`)
+      }
+
+      const sagaExists = await toolbox.patching.exists(fileName, `from './${pascalCase(name)}Sagas'`)
+      if (sagaExists) {
+        toolbox.print.info(`Saga Index: ${ pascalCase(name) } saga exists, skipping`)
+        const operationExists = await toolbox.patching.exists(fileName, `${operation}${pascalCase(name)}`)
+        if (operationExists) {
+          toolbox.print.info(`Saga Index: ${pascalCase(name)} operation exists, skipping`)
+        } else {
+          await patching.patch(fileName, {
+            insert: `, ${operation}${pascalCase(name)}`,
+            before: ` } from './${pascalCase(name)}Sagas'`
+          })
+          toolbox.print.success(`Saga Index:  Saga operation import added`)
+        }
+      } else {
+        await patching.patch(fileName, {
+          insert: `\nimport { ${operation}${pascalCase(name)} } from './${pascalCase(name)}Sagas'`,
+          after: `/* ------------- Sagas ------------- */`
+        })
+        toolbox.print.success(`Saga Index:  Saga operation import added`)
+      }
+
+      const typeConnectExists = await toolbox.patching.exists(fileName, `takeLatest(${pascalCase(name)}Types.${snakeCase(name).toUpperCase()}_${snakeCase(operation).toUpperCase()}_REQUEST, ${operation}${pascalCase(name)}, api)`)
+      if (typeConnectExists) {
+        toolbox.print.info(`Saga Index: ${pascalCase(name)} type connect exists, skipping`)
+      } else {
+        await patching.patch(fileName, {
+          insert: `\n\t\ttakeLatest(${ pascalCase(name)}Types.${ snakeCase(name).toUpperCase() }_${ snakeCase(operation).toUpperCase() }_REQUEST, ${ operation }${ pascalCase(name) }, api),`,
+          after: `yield all([`
+        })
+        toolbox.print.success(`Saga Index: Saga operation connected to redux`)
+      }
+
+    }
+  }
+
+  async function addReduxIndex(name: string, operation: string): Promise<void> {
+    const path = 'App/Redux'
+    const fileName = `${path}/index.js`
+    if (!filesystem.exists(fileName)) {
+      toolbox.print.error(`${path}/${fileName} not found`)
+    } else {
+      const { pascalCase, camelCase } = strings
+      const reduxExists = await toolbox.patching.exists(fileName, "require('./" + pascalCase(name)+"Redux').reducer")
+      if (reduxExists) {
+        toolbox.print.info(`Redux Index: ${pascalCase(name)} exists, skipping`)
+      } else {
+        await patching.patch(fileName, {
+          insert: `\n\t${camelCase(name)}: require('./${pascalCase(name)}Redux').reducer,`,
+          after: "export const reducers = combineReducers({"
+        })
+        toolbox.print.success(`Redux Index: Redux added`)
+      }
+    }
+  }
+
+  toolbox.crud = { addApiRoute, addReduxOperation, addSagaOperation, addSagaIndex, addReduxIndex }
 }

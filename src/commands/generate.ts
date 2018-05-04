@@ -28,6 +28,9 @@ module.exports = {
     if (resultRoute.route) {
       crud.addApiRoute(name, resultRoute.route, resultOperation.operation.toLowerCase())
       crud.addReduxOperation(name, resultOperation.operation.toLowerCase())
+      crud.addSagaOperation(name, resultOperation.operation.toLowerCase())
+      crud.addSagaIndex(name, resultOperation.operation.toLowerCase())
+      crud.addReduxIndex(name, resultOperation.operation.toLowerCase())
     } else {
       toolbox.print.error('Please enter route')
     }
