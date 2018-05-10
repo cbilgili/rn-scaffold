@@ -64,7 +64,7 @@ module.exports = (toolbox) => {
         target: fileName,
         props: { name, operation, operatingName }
       })
-      toolbox.print.info(`Created ${path}/${fileName}`)
+      toolbox.print.success(`Created ${path}/${fileName}`)
     } else {
       toolbox.print.info(`Patching ${fileName}`)
       const operationExists = await toolbox.patching.exists(fileName, upperReduxMethod + "_REQUEST")
@@ -111,7 +111,8 @@ export const failure${reduxActionName} = state =>
     const { pascalCase, camelCase } = strings
 
     // const pascalApiMethodName = pascalCase(`${operation}${name}`)
-    const apiMethodName = camelCase(`${operation}${name}`)
+    const apiMethodName = camelCase(`${operation} ${name}`)
+    const reduxMethodName = camelCase(`${name} ${operation}`)
 
     if (!filesystem.exists(fileName)) {
       await generate({
@@ -119,7 +120,7 @@ export const failure${reduxActionName} = state =>
         target: fileName,
         props: { name, operation, restMethod }
       })
-      toolbox.print.info(`Created ${path}/${fileName}`)
+      toolbox.print.success(`Created ${path}/${fileName}`)
     } else {
       toolbox.print.info(`Patching ${fileName}`)
       
@@ -135,9 +136,9 @@ export const failure${reduxActionName} = state =>
 
   // success?
   if (response.ok && isNil(response.data.error)) {
-    yield put(${pascalCase(name)}Actions.${apiMethodName}Success(response.data))
+    yield put(${pascalCase(name)}Actions.${reduxMethodName}Success(response.data))
   } else {
-    yield put(${pascalCase(name)}Actions.${apiMethodName}Failure())
+    yield put(${pascalCase(name)}Actions.${reduxMethodName}Failure())
   }
 }\n`)
         toolbox.print.success(`Saga operation added`)

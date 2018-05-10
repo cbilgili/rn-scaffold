@@ -24,6 +24,10 @@ module.exports = {
     const { parameters, crud } = toolbox
 
     const name = parameters.first
+    if (name === undefined) {
+      toolbox.print.error('Please enter model name like User or Product like; rn-scaffold crud Product')
+      return
+    }
       // Add a operation (CRUD)
       // Add operation to API Path
       // Create Saga File if not exists

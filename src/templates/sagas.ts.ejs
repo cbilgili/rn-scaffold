@@ -3,16 +3,16 @@ import <%= pascalCase(props.name) %>Actions from '../Redux/<%= pascalCase(props.
 // import { <%= pascalCase(props.name) %>Selectors } from '../Redux/<%= pascalCase(props.name) %>Redux'
 import { isNil } from 'ramda'
 
-export function * <%= props.operation %><%= pascalCase(props.name) %> (api, action) {
+export function * <%= camelCase(`${props.operation}_${props.name}`) %> (api, action) {
   const { data } = action
   // const currentData = yield select(<%= pascalCase(props.name) %>Selectors.getData)
   // make the call to the api
-  const response = yield call(api.<%= props.operation %><%= pascalCase(props.name) %>, data)
+  const response = yield call(api.<%= camelCase(`${props.operation}_${props.name}`) %>, data)
 
   // success?
   if (response.ok && isNil(response.data.error)) {
-    yield put(<%= pascalCase(props.name) %>Actions.<%= camelCase(props.operation) %>Success(response.data))
+    yield put(<%= pascalCase(props.name) %>Actions.<%= camelCase(`${props.name}_${props.operation}`) %>Success(response.data))
   } else {
-    yield put(<%= pascalCase(props.name) %>Actions.<%= camelCase(props.operation) %>Failure())
+    yield put(<%= pascalCase(props.name) %>Actions.<%= camelCase(`${props.name}_${props.operation}`) %>Failure())
   }
 }

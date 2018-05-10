@@ -22,9 +22,10 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "typescript": "^2.5.3",
+    "gluegun": "next",
+    "npm": "^6.0.1",
     "ts-node": "^3.3.0",
-    "gluegun": "next"
+    "typescript": "^2.5.3"
   },
   "devDependencies": {
     "@types/node": "^8.0.47",
